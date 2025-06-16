@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Statement Excel Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .summary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .summary h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.3em;
+        }
+        
+        .summary p {
+            margin: 5px 0;
+            font-size: 1.1em;
+        }
+        
+        .download-btn {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            display: block;
+            margin: 30px auto;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin-top: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 10px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 13px;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8f9ff;
+        }
+        
+        tr:hover {
+            background-color: #e8f0fe;
+            transition: background-color 0.2s ease;
+        }
+        
+        .credit {
+            color: #2e7d32;
+            font-weight: 600;
+        }
+        
+        .debit {
+            color: #c62828;
+            font-weight: 600;
+        }
+        
+        .balance {
+            color: #1565c0;
+            font-weight: 600;
+        }
+        
+        .date {
+            color: #5d4037;
+            font-weight: 500;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            table {
+                font-size: 12px;
+            }
+            
+            th, td {
+                padding: 8px 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💰 Bank Statement Excel Generator</h1>
+        
+        <div class="summary">
+            <h3>Account Summary</h3>
+            <p><strong>Account:</strong> COSMOS ENTERPRISES (666405112451)</p>
+            <p><strong>Period:</strong> July 1-31, 2019</p>
+            <p><strong>Total Transactions:</strong> <span id="totalTransactions">31</span></p>
+            <p><strong>Final Balance:</strong> ₹27,314.45 Cr</p>
+        </div>
+        
+        <button class="download-btn" onclick="downloadExcel()">
+            📊 Download Excel File
+        </button>
+        
+        <div class="table-container">
+            <table id="transactionTable">
+                <thead>
+                    <tr>
+                        <th>Transaction Details</th>
+                        <th>Date</th>
+                        <th>Credit (₹)</th>
+                        <th>Debit (₹)</th>
+                        <th>Balance (₹)</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Transaction data extracted from the bank statement
+        const transactions = [
+            {
+                details: "B/F (Brought Forward)",
+                date: "01-07-2019",
+                credit: "",
+                debit: "",
+                balance: "16,674.45 Cr"
+            },
+            {
+                details: "BY CASH - BIJOLIA",
+                date: "01-07-2019",
+                credit: "2,000.00",
+                debit: "",
+                balance: "18,674.45 Cr"
+            },
+            {
+                details: "BIL/INFT/001743804629/NA/",
+                date: "02-07-2019",
+                credit: "3,740.00",
+                debit: "",
+                balance: "22,414.45 Cr"
+            },
+            {
+                details: "MMT/IMPS/918317526479/vidrc/MKELECTRON/BANK OF BAR",
+                date: "02-07-2019",
+                credit: "3,000.00",
+                debit: "",
+                balance: "25,414.45 Cr"
+            },
+            {
+                details: "BY CASH-KACHHOLA",
+                date: "03-07-2019",
+                credit: "3,000.00",
+                debit: "",
+                balance: "28,414.45 Cr"
+            },
+            {
+                details: "MMT/IMPS/918418038560/d2h/HANSHRAJSO/BANK OF BAROD",
+                date: "03-07-2019",
+                credit: "14,000.00",
+                debit: "",
+                balance: "42,414.45 Cr"
+            },
+            {
+                details: "CLG/COSMOS ENTERPRISES /BRK 5181",
+                date: "05-07-2019",
+                credit: "",
+                debit: "40,000.00",
+                balance: "2,414.45 Cr"
+            },
+            {
+                details: "MMT/IMPS/918710930334/d2h/HANSHRAJSO/BANK OF BAROD",
+                date: "06-07-2019",
+                credit: "5,000.00",
+                debit: "",
+                balance: "7,414.45 Cr"
+            },
+            {
+                details: "MMT/IMPS/918814106619/d2h/HANSHRAJSO/BANK OF BAROD",
+                date: "08-07-2019",
+                credit: "5,000.00",
+                debit: "",
+                balance: "12,414.45 Cr"
+            },
+            {
+                details: "BIL/INFT/001748219433/NA/",
+                date: "08-07-2019",
+                credit: "2,150.00",
+                debit: "",
+                balance: "14,564.45 Cr"
+            },
+            {
+                details: "UPI/918911468469/UPI/nandkishormali4/State Bank Of",
+                date: "08-07-2019",
+                credit: "3,000.00",
+                debit: "",
+                balance: "17,564.45 Cr"
+            },
+            {
+                details: "UPI/919006529705/Palak2vd2h/urmilarankaasin/Paytm",
+                date: "09-07-2019",
+                credit: "2,000.00",
+                debit: "",
+                balance: "19,564.45 Cr"
+            },
+            {
+                details: "UPI/919036840608/NA/9602426732@payt/Bank of Baroda",
+                date: "09-07-2019",
+                credit: "2,000.00",
+                debit: "",
+                balance: "21,564.45 Cr"
+            },
+            {
+                details: "MMT/IMPS/919014033158/d2h/HANSHRAJSO/BANK OF BAROD",
+                date: "09-07-2019",
+                credit: "5,000.00",
+                debit: "",
+                balance: "26,564.45 Cr"
+            },
+            {
+                details: "MMT/IMPS/919212840990/vidrc/MKELECTRON/BANK OF BAR",
+                date: "11-07-2019",
+                credit: "3,000.00",
+                debit: "",
+                balance: "29,564.45 Cr"
+            },
+            {
+                details: "CLG/CODMOD ENTERPRISES/BRK 5182",
+                date: "11-07-2019",
+                credit: "",
+                debit: "20,000.00",
+                balance: "9,564.45 Cr"
+            },
+            {
+                details: "UPI/919242812430/Payment from Ph/9828846558@ybl/IC",
+                date: "11-07-2019",
+                credit: "1,520.00",
+                debit: "",
+                balance: "11,084.45 Cr"
+            },
+            {
+                details: "UPI/919322122791/Payment from Ph/9351997650@ybl/IC",
+                date: "12-07-2019",
+                credit: "1,950.00",
+                debit: "",
+                balance: "13,034.45 Cr"
+            },
+            {
+                details: "BIL/INFT/001752493955/NA/",
+                date: "15-07-2019",
+                credit: "1,520.00",
+                debit: "",
+                balance: "14,554.45 Cr"
+            },
+            {
+                details: "MMT/IMPS/919414649494/d2h/HANSHRAJSO/BANK OF BAROD",
+                date: "15-07-2019",
+                credit: "10,000.00",
+                debit: "",
+                balance: "24,554.45 Cr"
+            },
+            {
+                details: "BY CASH - GULABPURA BAWRI CHOURAHA",
+                date: "15-07-2019",
+                credit: "5,000.00",
+                debit: "",
+                balance: "29,554.45 Cr"
+            },
+            {
+                details: "BIL/INFT/001754025469/MIB-/",
+                date: "15-07-2019",
+                credit: "1,800.00",
+                debit: "",
+                balance: "31,354.45 Cr"
+            },
+            {
+                details: "BY CASH - GULABPURA BAWRI CHOURAHA",
+                date: "16-07-2019",
+                credit: "3,000.00",
+                debit: "",
+                balance: "34,354.45 Cr"
+            },
+            {
+                details: "CLG/COSMOS ENTERPRISES/BRK 5183",
+                date: "17-07-2019",
+                credit: "",
+                debit: "25,000.00",
+                balance: "9,354.45 Cr"
+            },
+            {
+                details: "BIL/INFT/001755789313/MIB-/",
+                date: "18-07-2019",
+                credit: "2,000.00",
+                debit: "",
+                balance: "11,354.45 Cr"
+            },
+            {
+                details: "MMT/IMPS/919922724515/vidicon/MONUVAISHN/BANK OF B",
+                date: "18-07-2019",
+                credit: "10,000.00",
+                debit: "",
+                balance: "21,354.45 Cr"
+            },
+            {
+                details: "MMT/IMPS/920111689183/sisodiyakarera/GOPALSINGH/BA",
+                date: "20-07-2019",
+                credit: "1,370.00",
+                debit: "",
+                balance: "22,724.45 Cr"
+            },
+            {
+                details: "UPI/920115721877/UPI/jaina8645@oksbi/State Bank Of",
+                date: "20-07-2019",
+                credit: "3,000.00",
+                debit: "",
+                balance: "25,724.45 Cr"
+            },
+            {
+                details: "MMT/IMPS/920312994555/vidrc/MKELECTRON/BANK OF BAR",
+                date: "22-07-2019",
+                credit: "3,000.00",
+                debit: "",
+                balance: "28,724.45 Cr"
+            },
+            {
+                details: "MMT/IMPS/920313790639/d2h/HANSHRAJSO/BANK OF BAROD",
+                date: "22-07-2019",
+                credit: "5,000.00",
+                debit: "",
+                balance: "33,724.45 Cr"
+            },
+            {
+                details: "BIL/INFT/001758812148/NA/",
+                date: "23-07-2019",
+                credit: "3,040.00",
+                debit: "",
+                balance: "36,764.45 Cr"
+            },
+            {
+                details: "MMT/IMPS/920412416551/vidicon/MONUVAISHN/BANK OF B",
+                date: "23-07-2019",
+                credit: "10,000.00",
+                debit: "",
+                balance: "46,764.45 Cr"
+            },
+            {
+                details: "MMT/IMPS/920417396415/MB: PCS/SHRAWAN KU/KOTAK MAH",
+                date: "23-07-2019",
+                credit: "2,500.00",
+                debit: "",
+                balance: "49,264.45 Cr"
+            },
+            {
+                details: "CLG/COSMOS ENTERPRISES /BRK 5184",
+                date: "24-07-2019",
+                credit: "",
+                debit: "30,000.00",
+                balance: "19,264.45 Cr"
+            },
+            {
+                details: "BY CASH-KACHHOLA",
+                date: "25-07-2019",
+                credit: "3,050.00",
+                debit: "",
+                balance: "22,314.45 Cr"
+            },
+            {
+                details: "UPI/920714508104/UPI/nandkishormali4/State Bank Of",
+                date: "26-07-2019",
+                credit: "2,000.00",
+                debit: "",
+                balance: "24,314.45 Cr"
+            },
+            {
+                details: "UPI/921024499579/Payment from Ph/gopalsoni88@ybl/H",
+                date: "29-07-2019",
+                credit: "2,000.00",
+                debit: "",
+                balance: "26,314.45 Cr"
+            },
+            {
+                details: "MMT/IMPS/921211070844/MB: PCS NAYAK/SHRAWAN KU/KOT",
+                date: "31-07-2019",
+                credit: "1,000.00",
+                debit: "",
+                balance: "27,314.45 Cr"
+            }
+        ];
+
+        // Populate the table
+        function populateTable() {
+            const tbody = document.getElementById('transactionTableBody');
+            transactions.forEach(transaction => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${transaction.details}</td>
+                    <td class="date">${transaction.date}</td>
+                    <td class="credit">${transaction.credit}</td>
+                    <td class="debit">${transaction.debit}</td>
+                    <td class="balance">${transaction.balance}</td>
+                `;
+            });
+        }
+
+        // Download Excel function
+        function downloadExcel() {
+            // Create workbook and worksheet
+            const wb = XLSX.utils.book_new();
+            
+            // Prepare data for Excel
+            const excelData = [
+                ['Transaction Details', 'Date', 'Credit (₹)', 'Debit (₹)', 'Balance (₹)']
+            ];
+            
+            transactions.forEach(transaction => {
+                excelData.push([
+                    transaction.details,
+                    transaction.date,
+                    transaction.credit,
+                    transaction.debit,
+                    transaction.balance
+                ]);
+            });
+            
+            // Create worksheet
+            const ws = XLSX.utils.aoa_to_sheet(excelData);
+            
+            // Set column widths
+            ws['!cols'] = [
+                { width: 60 }, // Transaction Details
+                { width: 12 }, // Date
+                { width: 15 }, // Credit
+                { width: 15 }, // Debit
+                { width: 18 }  // Balance
+            ];
+            
+            // Add worksheet to workbook
+            XLSX.utils.book_append_sheet(wb, ws, 'Bank Statement');
+            
+            // Generate and download file
+            XLSX.writeFile(wb, 'COSMOS_ENTERPRISES_Bank_Statement_July_2019.xlsx');
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            populateTable();
+            document.getElementById('totalTransactions').textContent = transactions.length;
+        });
+    </script>
+</body>
+</html>

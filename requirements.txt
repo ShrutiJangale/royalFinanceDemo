@@ -1,0 +1,17 @@
+Django>=4.2,<5.0
+pymongo>=4.0,<5.0
+pypdf2
+pdfplumber
+openpyxl
+docling-core==2.33.1
+docling-parse==4.0.3
+docling
+rapidocr
+openai
+pydantic>=2.0.0,<3.0.0
+pydantic-settings>=2.7.0,<3.0.0
+opencv-python
+pdf2image 
+pillow 
+PyMuPDF
+fitz

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bank Statement Analyzer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Use a professional and clean font */
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        /* Custom styles for a polished look */
+        .editable[contenteditable="true"] {
+            outline: 2px solid #3b82f6; /* blue-500 */
+            background-color: #eff6ff; /* blue-50 */
+            border-radius: 4px;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        .btn-primary {
+            @apply inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-semibold rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all transform hover:scale-105;
+        }
+        .btn-secondary {
+             @apply inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-semibold rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all;
+        }
+        /* Custom styling for the notification pop-up */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            color: white;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .notification-success {
+            background-color: #10B981; /* Emerald-500 */
+        }
+        .notification-error {
+            background-color: #EF4444; /* Red-500 */
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+<div id="notification-area" class="notification"></div>
+
+{% if error %}
+    <div class="max-w-4xl mx-auto mt-12 bg-red-50 border-l-4 border-red-400 p-6 rounded-r-lg shadow-md">
+        <div class="flex">
+            <div class="py-1">
+                <svg class="h-6 w-6 text-red-500 mr-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            </div>
+            <div>
+                <p class="text-lg font-bold text-red-800">An Error Occurred</p>
+                <p class="text-md text-red-700 mt-1">{{ error }}</p>
+                <a href="{% url 'statement_analyzer:upload_statement' %}" class="mt-4 btn-secondary">
+                    <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                    Go Back to Upload
+                </a>
+            </div>
+        </div>
+    </div>
+{% else %}
+<div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+
+    <header class="flex justify-between items-center mb-8 pb-4 border-b border-gray-200">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Statement Analysis</h1>
+            <p class="mt-1 text-sm text-gray-500">Review, edit, and revalidate transaction data.</p>
+        </div>
+        <a href="{% url 'statement_analyzer:upload_statement' %}" class="btn-secondary hidden sm:inline-flex">
+            <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            New Upload
+        </a>
+    </header>
+
+    <!-- Bank information section -->
+    <section class="mb-8 bg-white shadow-sm rounded-xl border border-gray-200">
+        <div class="p-6">
+            <h2 class="text-xl font-semibold text-gray-800 flex items-center">
+                <svg class="w-6 h-6 mr-3 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 14c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 20c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM4 14c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM20 14c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l9-9 9 9M5 10v9a2 2 0 002 2h10a2 2 0 002-2v-9"/>
+                </svg>
+                Bank Information
+            </h2>
+            <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
+                <div>
+                    <label class="block font-medium text-gray-500">Bank Name</label>
+                    <div class="mt-1 font-semibold text-gray-900">{{ account_info.bank_name|default:"N/A" }}</div>
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-500">Branch Code</label>
+                    <div class="mt-1 font-semibold text-gray-900">{{ account_info.branch_code|default:"N/A" }}</div>
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-500">Address</label>
+                    <div class="mt-1 font-semibold text-gray-900">{{ account_info.branch_address|default:"N/A" }}</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Account Info Card -->
+    <section class="mb-8 bg-white shadow-sm rounded-xl border border-gray-200">
+        <div class="p-6">
+            <h2 class="text-xl font-semibold text-gray-800 flex items-center">
+                <svg class="w-6 h-6 mr-3 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                Account Information
+            </h2>
+            <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
+                <div>
+                    <label class="block font-medium text-gray-500">Holder Name</label>
+                    <div class="mt-1 font-semibold text-gray-900">{{ account_info.holder_name|default:"N/A" }}</div>
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-500">Account Number</label>
+                    <div class="mt-1 font-semibold text-gray-900">{{ account_info.account_number|default:"N/A" }}</div>
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-500">Statement Period</label>
+                    <div class="mt-1 font-semibold text-gray-900">{{ account_info.period|default:"N/A" }}</div>
+                </div>
+                <div>
+                    <label class="block font-medium text-gray-500">Final Balance</label>
+                    <div class="mt-1 font-semibold text-gray-900">
+                        {% if account_info.final_balance is not None %}
+                            {{ account_info.final_balance|floatformat:2 }}
+                            {% if account_info.final_balance >= 0 %}<span class="ml-2 text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded-full">Credit</span>
+                            {% else %}<span class="ml-2 text-xs font-bold text-red-600 bg-red-100 px-2 py-1 rounded-full">Debit</span>{% endif %}
+                        {% else %} N/A {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Transactions Table Section -->
+    <section>
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold text-gray-800">Transaction Details</h2>
+            <div class="flex items-center space-x-3">
+                <button id="editBtn" class="btn-secondary">
+                    <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L16.5 3.464z" /></svg>
+                    Enable Edit Mode
+                </button>
+                 <button id="revalidateBtn" class="btn-primary">
+                    <svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    Revalidate
+                </button>
+            </div>
+        </div>
+
+        {% if transactions %}
+        <div class="overflow-hidden bg-white shadow-sm rounded-xl border border-gray-200">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">#</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider min-w-[300px]">Details</th>
+                            <th class="px-6 py-3 text-right text-xs font-bold text-green-600 uppercase tracking-wider">Credit (Cr)</th>
+                            <th class="px-6 py-3 text-right text-xs font-bold text-red-600 uppercase tracking-wider">Debit (Dr)</th>
+                            <th class="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200 text-sm text-gray-800">
+                        {% for transaction in transactions %}
+                        <tr class="hover:bg-blue-50 transition-colors duration-150 {% if transaction.mismatch %}bg-red-50 border-l-4 border-red-400{% endif %}">
+                            <td class="px-6 py-4 whitespace-nowrap text-gray-500">{{ forloop.counter }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap editable">{{ transaction.date|default:"N/A" }}</td>
+                            <td class="px-6 py-4 editable">{{ transaction.details|default:"N/A" }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right font-medium text-green-700 editable" data-type="credit">
+                                {% if transaction.amount >= 0 %}{{ transaction.amount|floatformat:2 }}{% else %}-{% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right font-medium text-red-700 editable" data-type="debit">
+                                {% if transaction.amount < 0 %}{{ transaction.amount|floatformat:2 }}{% else %}-{% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right font-semibold editable">
+                                {% if transaction.balance is not None %}{{ transaction.balance|floatformat:2 }}{% else %}N/A{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+            <div class="text-center text-gray-500 text-base mt-8 bg-white p-10 rounded-xl shadow-sm border border-gray-200">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" /></svg>
+                <h3 class="mt-2 text-lg font-medium text-gray-900">No Transactions</h3>
+                <p class="mt-1 text-sm text-gray-500">No transactions were found for this statement.</p>
+            </div>
+        {% endif %}
+    </section>
+
+</div>
+{% endif %}
+
+<script>
+    const editBtn = document.getElementById('editBtn');
+    const revalidateBtn = document.getElementById('revalidateBtn');
+    let editMode = false;
+
+    // --- Professional Notification System ---
+    function showNotification(message, type = 'success') {
+        const notificationArea = document.getElementById('notification-area');
+        notificationArea.textContent = message;
+        notificationArea.className = 'notification'; // Reset classes
+        notificationArea.classList.add(type === 'success' ? 'notification-success' : 'notification-error');
+        notificationArea.classList.add('show');
+
+        setTimeout(() => {
+            notificationArea.classList.remove('show');
+        }, 3000);
+    }
+
+    // --- Edit Mode Logic ---
+    editBtn.addEventListener('click', () => {
+        editMode = !editMode;
+        document.querySelectorAll('.editable').forEach(cell => {
+            cell.contentEditable = editMode;
+            cell.classList.toggle('bg-blue-50', editMode);
+        });
+        
+        if (editMode) {
+            editBtn.innerHTML = `<svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg> Disable Edit Mode`;
+            editBtn.classList.replace('btn-secondary', 'btn-primary');
+            editBtn.classList.replace('bg-white', 'bg-red-600');
+            editBtn.classList.replace('hover:bg-gray-50', 'hover:bg-red-700');
+            editBtn.classList.replace('text-gray-700', 'text-white');
+        } else {
+            editBtn.innerHTML = `<svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.536L16.5 3.464z" /></svg> Enable Edit Mode`;
+            editBtn.classList.replace('btn-primary', 'btn-secondary');
+            editBtn.classList.replace('bg-red-600', 'bg-white');
+            editBtn.classList.replace('hover:bg-red-700', 'hover:bg-gray-50');
+            editBtn.classList.replace('text-white', 'text-gray-700');
+        }
+    });
+
+    // --- Revalidation Logic ---
+    revalidateBtn.addEventListener('click', async () => {
+        revalidateBtn.disabled = true;
+        revalidateBtn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Processing...`;
+        
+        const rows = document.querySelectorAll("tbody tr");
+        const updatedTransactions = [];
+
+        rows.forEach((row, index) => {
+            const cells = row.querySelectorAll("td");
+            const date = cells[1].innerText.trim();
+            const details = cells[2].innerText.trim();
+            const creditValue = cells[3].innerText.trim();
+            const debitValue = cells[4].innerText.trim();
+            const balanceText = cells[5].innerText.trim();
+            let amount = 0;
+
+            if (creditValue && creditValue !== "-") {
+                amount = parseFloat(creditValue.replace(/,/g, '')) || 0;
+            } else if (debitValue && debitValue !== "-") {
+                amount = parseFloat(debitValue.replace(/,/g, '')) || 0;
+            }
+
+            const balance = parseFloat(balanceText.replace(/,/g, '')) || null;
+            updatedTransactions.push({ id: index, date, details, amount, balance });
+        });
+
+        try {
+            const response = await fetch("{% url 'statement_analyzer:revalidate_transactions' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({ transactions: updatedTransactions })
+            });
+
+            if (response.ok) {
+                showNotification("Revalidation successful! Page will now reload.", 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showNotification("Revalidation failed. Please check the data.", 'error');
+                revalidateBtn.disabled = false;
+                revalidateBtn.innerHTML = `<svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> Revalidate`;
+            }
+        } catch (err) {
+            showNotification("An error occurred: " + err.message, 'error');
+            revalidateBtn.disabled = false;
+            revalidateBtn.innerHTML = `<svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> Revalidate`;
+        }
+    });
+</script>
+
+</body>
+</html>

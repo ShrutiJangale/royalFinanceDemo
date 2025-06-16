@@ -1,0 +1,438 @@
+{% load custom_filters %}
+{% csrf_token %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Statement Analyzer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #5B8FB9; /* Muted Blue */
+            --secondary-color: #F8F9FA; /* Very Light Gray */
+            --text-color: #343A40; /* Dark Gray */
+            --light-text-color: #6C757D; /* Medium Gray */
+            --white: #ffffff;
+            --border-color: #E9ECEF; /* Lighter Border Gray */
+            --success-color: #28A745; /* Green */
+            --danger-color: #DC3545; /* Red */
+            --info-color: #17A2B8; /* Cyan */
+            --shadow: 0 2px 4px rgba(0, 0, 0, 0.08); /* Subtle shadow */
+            --border-radius: 8px;
+            --padding-base: 16px;
+        }
+
+        /* Base Body Styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 40px var(--padding-base);
+            box-sizing: border-box;
+        }
+
+        /* Main Container for the entire UI */
+        .container {
+            background-color: var(--white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 700px; /* Slightly reduced max-width for a more focused look */
+            padding: var(--padding-base) * 2;
+            box-sizing: border-box;
+        }
+
+        /* Header Section */
+        header {
+            text-align: center;
+            margin-bottom: var(--padding-base) * 2;
+        }
+
+        header h1 {
+            color: var(--primary-color);
+            font-size: 2.2em; /* Slightly smaller for professionalism */
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        header p {
+            color: var(--light-text-color);
+            font-size: 1em;
+            font-weight: 400;
+        }
+
+        /* Card Component Styling */
+        .card {
+            background-color: var(--white);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: var(--padding-base);
+            margin-bottom: var(--padding-base);
+            box-shadow: var(--shadow);
+        }
+
+        /* Form Section */
+        .form-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: var(--padding-base);
+        }
+
+        .form-group {
+            margin-bottom: var(--padding-base);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-color); /* Darker label for better contrast */
+        }
+
+        .form-group input[type="file"] {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            box-sizing: border-box;
+            background-color: var(--secondary-color);
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input[type="file"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        /* Custom styling for file input button */
+        .form-group input[type="file"]::file-selector-button {
+            background-color: var(--primary-color);
+            color: var(--white);
+            padding: 8px 12px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            margin-right: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .form-group input[type="file"]::file-selector-button:hover {
+            background-color: #4A7CA6; /* Darker primary color on hover */
+        }
+
+        /* Submit Button */
+        button[type="submit"] {
+            background-color: var(--primary-color);
+            color: var(--white);
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            width: 100%;
+            max-width: 250px;
+            margin-top: 10px;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #4A7CA6;
+            transform: translateY(-2px);
+        }
+
+        button[type="submit"]:active {
+            transform: translateY(0);
+        }
+
+        /* Message Boxes (Success, Error) */
+        .message-box {
+            padding: var(--padding-base);
+            border-radius: var(--border-radius);
+            margin-top: var(--padding-base);
+            text-align: center;
+            font-weight: 500; /* Slightly lighter font-weight */
+            font-size: 0.95em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .message-box .icon {
+            font-size: 1.3em;
+        }
+
+        .message-box.success {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: var(--success-color);
+            border: 1px solid var(--success-color);
+        }
+
+        .message-box.error {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: var(--danger-color);
+            border: 1px solid var(--danger-color);
+        }
+
+        /* Call to action buttons container */
+        .action-buttons {
+            display: flex;
+            flex-direction: row; /* Stack buttons on small screens */
+            gap: 15px; /* Space between buttons */
+            margin-top: 25px;
+            margin-bottom: 15px;
+            align-items: center; /* Center buttons */
+            gap: 1rem;
+        }
+
+        .action-button {
+            display: inline-flex;
+            align-items: center;
+            padding: 12px 28px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            text-decoration: none;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 280px; /* Adjust max-width for buttons */
+            justify-content: center; /* Center text and icon */
+        }
+
+        .action-button.primary {
+            background-color: var(--primary-color);
+            color: var(--white);
+        }
+
+        .action-button.primary:hover {
+            background-color: #4A7CA6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .action-button.secondary {
+            background-color: #E0EBF5; /* A lighter shade of blue */
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+        }
+
+        .action-button.secondary:hover {
+            background-color: #C1D9ED;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .action-button svg {
+            margin-right: 10px;
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            margin-top: var(--padding-base) * 2;
+            color: var(--light-text-color);
+            font-size: 0.85em;
+        }
+
+        /* Loading Overlay (Full screen) */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            gap: 25px;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.4s ease-in-out, visibility 0.4s ease-in-out;
+        }
+
+        .loading-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Spinner Animation */
+        .spinner {
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid var(--primary-color);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1.2s linear infinite;
+        }
+
+        .loading-text {
+            font-size: 1.3em;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 600px) {
+            body {
+                padding: 20px var(--padding-base);
+            }
+            .container {
+                padding: var(--padding-base);
+            }
+            header h1 {
+                font-size: 1.8em;
+            }
+            header p {
+                font-size: 0.95em;
+            }
+            button[type="submit"], .action-button {
+                padding: 10px 20px;
+                font-size: 0.95em;
+                width: 90%;
+                max-width: none;
+            }
+            .message-box {
+                font-size: 0.9em;
+                padding: 12px;
+            }
+            .loading-text {
+                font-size: 1.1em;
+            }
+            .spinner {
+                width: 40px;
+                height: 40px;
+                border-width: 4px;
+            }
+            .action-buttons {
+                flex-direction: row; /* Ensure buttons stack on smaller screens */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><span style="color: #6C757D;">&#x1F4C4;</span> Bank Statement Analyzer</h1>
+            <p>Effortlessly analyze bank statements for data extraction and potential issues.</p>
+        </header>
+
+        <section class="card form-section">
+            <form method="post" enctype="multipart/form-data" id="upload-form">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="{{ form.file.id_for_label }}">Upload PDF Statement:</label>
+                    {{ form.file }}
+                    {% if form.file.errors %}
+                        <p class="message-box error">&#x274C; {{ form.file.errors }}</p>
+                    {% endif %}
+                </div>
+                <button type="submit">Analyze Statement</button>
+            </form>
+        </section>
+
+        {# Section for displaying error messages #}
+        {% if error %}
+            <section class="message-section">
+                <div class="message-box error">
+                    <span class="icon">&#x274C;</span>
+                    {{ error }}
+                </div>
+            </section>
+        {% endif %}
+
+        {# Section for displaying transaction extracted confirmation and buttons #}
+        {% if transactions_extracted %}
+            <section class="message-section">
+                <div class="message-box success">
+                    <span class="icon">&#x2705;</span>
+                    Statement processed successfully! Transactions extracted.
+                </div>
+            </section>
+
+            <div class="action-buttons">
+                <a href="{% url 'statement_analyzer:view_transactions_data' %}" class="action-button primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path fill-rule="evenodd" d="M11.25 4.533A9.752 9.752 0 0 0 6 6a9.752 9.752 0 0 0-5.25 5.25c0 1.954.269 3.846.77 5.667l-2.493 2.493 9.87-9.87c.21-.21.438-.396.687-.563ZM12 6a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 .75.75V6h-.008a.75.75 0 0 1-.75-.75Zm.75 3a.75.75 0 0 0-.75.75v.008c0 .414.336.75.75.75h.008a.75.75 0 0 0 .75-.75V9.75a.75.75 0 0 0-.75-.75ZM15 6.75a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 .75.75V6.75H15Z" clip-rule="evenodd" />
+                        <path fill-rule="evenodd" d="M12.983 18.667c.307.411.666.817 1.054 1.206-.411.307-.817.666-1.206 1.054A9.752 9.752 0 0 1 12 18a9.752 9.752 0 0 1 5.25 5.25c1.954 0 3.846-.269 5.667-.77l-2.493-2.493-9.87-9.87c-.21-.21-.438-.396-.687-.563ZM18 12a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 .75.75V12h-.008a.75.75 0 0 1-.75-.75Zm.75 3a.75.75 0 0 0-.75.75v.008c0 .414.336.75.75.75h.008a.75.75 0 0 0 .75-.75V15.75a.75.75 0 0 0-.75-.75ZM21 12.75a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 .75.75V12.75H21Z" clip-rule="evenodd" />
+                    </svg>
+                    View All Transactions
+                </a>
+                <a href="{% url 'statement_analyzer:view_other_issue' %}" class="action-button secondary" id="detect-issues-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm8.706-1.442c1.146-.573 2.437-.443 3.53-.375a.75.75 0 0 0 .622-.598l.107-1.48a.75.75 0 0 0 .598-.622c1.163-.117 2.37-.292 3.53-.375a.75.75 0 0 0 .598-.622l.107-1.48a.75.75 0 0 0-.598-.622C19.605 5.539 21 7.234 21 12c0 2.21-.803 4.238-2.107 5.766a.75.75 0 0 0-.598.622l-.107 1.48a.75.75 0 0 0-.622.598c-1.146.573-2.437.443-3.53.375a.75.75 0 0 0-.598.622l-.107 1.48a.75.75 0 0 0-.622.598C4.395 18.461 3 16.766 3 12c0-2.21.803-4.238 2.107-5.766a.75.75 0 0 0 .598-.622l.107-1.48a.75.75 0 0 0 .622-.598Z" clip-rule="evenodd" />
+                    </svg>
+                    Detect Other Issues
+                </a>
+            </div>
+        {% endif %}
+
+        <footer>
+            &copy; {% now "Y" %} Bank Statement Analyzer (POC). ERGOBITE TECH SOLUTIONS.
+        </footer>
+    </div>
+
+    {# Loading overlay, hidden by default, shown on form submission #}
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Analyzing your statement... Please wait.</div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadForm = document.getElementById('upload-form');
+            const detectIssuesButton = document.getElementById('detect-issues-button');
+            const loadingOverlay = document.getElementById('loading-overlay');
+
+            // For the initial file upload form submission
+            if (uploadForm) {
+                uploadForm.addEventListener('submit', function() {
+                    if (loadingOverlay) {
+                        loadingOverlay.classList.add('visible');
+                    }
+                });
+            }
+
+            // For the "Detect Other Issues" button click
+            if (detectIssuesButton) {
+                detectIssuesButton.addEventListener('click', function() {
+                    if (loadingOverlay) {
+                        // Change loading text for this specific action
+                        document.querySelector('.loading-text').textContent = 'Detecting other issues... Please wait.';
+                        loadingOverlay.classList.add('visible');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
