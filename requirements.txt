@@ -15,3 +15,4 @@ pdf2image
 pillow 
 PyMuPDF
 fitz
+google-3.0.0
